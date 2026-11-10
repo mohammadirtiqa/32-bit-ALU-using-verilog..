@@ -1,0 +1,36 @@
+name: Verilog ALU Simulation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Icarus Verilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+
+      - name: Compile ALU and testbench
+        run: |
+          mkdir -p sim
+          iverilog -g2001 -Wall -o sim/alu32_tb.vvp src/alu32.v tb/tb_alu32.v
+
+      - name: Run self-checking testbench
+        run: |
+          vvp sim/alu32_tb.vvp | tee sim/simulation_output.txt
+          grep -q "ALL TESTS PASSED" sim/simulation_output.txt
+
+      - name: Upload simulation transcript
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alu32-simulation-output
+          path: sim/simulation_output.txt
+          if-no-files-found: ignore
